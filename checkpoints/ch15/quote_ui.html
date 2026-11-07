@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workshop Quote learning project</title>
+<style>
+body { font: 1rem/1.6 system-ui, sans-serif; margin: 3rem auto;
+       max-width: 38rem; padding: 0 1.25rem; color: #17202a; }
+label { display: block; margin-top: 1rem; font-weight: 650; }
+input, button { font: inherit; box-sizing: border-box;
+                width: 100%; padding: .65rem; }
+button { margin-top: 1.5rem; cursor: pointer; }
+input:focus, button:focus { outline: 3px solid #245ca6; }
+#status { min-height: 3rem; white-space: pre-wrap; }
+</style>
+<main>
+<h1>Workshop Quote</h1>
+<p>Create a fictional quote record. This does not reserve seats
+or process payment. Use invented data only.</p>
+<form id="quote-form">
+  <label for="record-id">Quote identifier</label>
+  <input id="record-id" name="record_id" required
+         maxlength="40" pattern="[A-Za-z0-9_\-]+"
+         aria-describedby="id-help">
+  <p id="id-help">Use a new identifier each time, such as demo-001.
+  Letters, digits, underscores, and hyphens are allowed.</p>
+  <label for="unit-cents">Price per seat in cents</label>
+  <input id="unit-cents" name="unit_cents" type="number"
+         min="0" max="1000000" step="1" required
+         aria-describedby="price-help">
+  <p id="price-help">For example, 1250 means USD 12.50.</p>
+  <label for="quantity">Number of seats</label>
+  <input id="quantity" name="quantity" type="number"
+         min="1" max="200" step="1" required>
+  <button type="submit">Create quote record</button>
+  <p id="status" role="status" aria-live="polite"></p>
+</form>
+</main>
+<script>
+const form = document.getElementById('quote-form');
+const status = document.getElementById('status');
+const button = form.querySelector('button');
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  button.disabled = true;
+  status.textContent = 'Creating quote record...';
+  const payload = {
+    record_id: document.getElementById('record-id').value,
+    unit_cents: document.getElementById('unit-cents').valueAsNumber,
+    quantity: document.getElementById('quantity').valueAsNumber
+  };
+  try {
+    const response = await fetch('/quotes', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      status.textContent = body.error || 'The request was rejected.';
+      return;
+    }
+    const dollars = Math.floor(body.total_cents / 100);
+    const cents = String(body.total_cents % 100).padStart(2, '0');
+    status.textContent = `Created ${body.record_id}. Total: USD ` +
+                         `${dollars}.${cents}. No booking was made.`;
+  } catch (error) {
+    status.textContent = 'No readable response, so the result is ' +
+      'unknown. Try again with the same identifier; "already exists" ' +
+      'means it was saved.';
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+</html>
