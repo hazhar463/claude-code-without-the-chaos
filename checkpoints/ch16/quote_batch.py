@@ -29,7 +29,8 @@ def save_batch(connection, payloads):
     try:
         connection.executemany(INSERT_SQL, values)
     except BaseException:
-        connection.execute("ROLLBACK")
+        if connection.in_transaction:  # SQLite may have rolled back
+            connection.execute("ROLLBACK")
         raise
     connection.execute("COMMIT")
     return records
